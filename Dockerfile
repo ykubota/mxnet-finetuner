@@ -1,4 +1,4 @@
-FROM nvidia/cuda:9.0-devel
+FROM ubuntu:xenial
 
 RUN apt-get update \
   && apt-get upgrade -y \
@@ -27,19 +27,7 @@ RUN apt-get update \
 RUN cd /usr/src/gtest && cmake CMakeLists.txt && make && cp *.a /usr/lib && \
     cd /tmp && wget https://bootstrap.pypa.io/get-pip.py && python3 get-pip.py
 
-# install libcudnn 7.0.4.31
-ENV CUDNN_VERSION 7.0.4.31
-LABEL com.nvidia.cudnn.version="${CUDNN_VERSION}"
-RUN apt-get update && apt-get install -y --no-install-recommends \
-            libcudnn7=$CUDNN_VERSION-1+cuda9.0 \
-            libcudnn7-dev=$CUDNN_VERSION-1+cuda9.0 \
-  && rm -rf /var/lib/apt/lists/*
-
-ENV BUILD_OPTS "USE_CUDA=1 USE_CUDA_PATH=/usr/local/cuda USE_CUDNN=1"
-RUN git clone --recursive https://github.com/apache/incubator-mxnet.git mxnet --branch 1.1.0 \
-  && cd mxnet \
-  && make -j$(nproc) $BUILD_OPTS \
-  && rm -r build
+RUN git clone --recursive https://github.com/apache/incubator-mxnet.git mxnet --branch 1.1.0
 
 RUN pip3 install nose pylint numpy nose-timer requests tqdm
 
@@ -61,12 +49,12 @@ RUN pip3 install \
   slackclient
 
 # install compiled mxnet
-RUN cd mxnet/python && pip install -e .
+RUN pip3 install mxnet-mkl==1.1.0
 
 # install mxnet-model-server
 RUN git clone https://github.com/awslabs/mxnet-model-server.git --branch v0.2.0 \
   && cd mxnet-model-server \
-  && pip install -e .
+  && pip3 install -e .
 
 RUN locale-gen en_US.UTF-8
 ENV LANG en_US.UTF-8
